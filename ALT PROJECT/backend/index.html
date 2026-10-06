@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Industrial Sensor Predictive Maintenance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-6">
+
+  <div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl">
+    
+    <!-- Input Form -->
+    <div>
+      <h2 class="text-2xl font-bold text-sky-400 mb-6 flex items-center gap-2">
+        <span>⚙️</span> Telemetry Ingestion
+      </h2>
+
+      <form id="sensorForm" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-semibold text-slate-400 uppercase">Machine ID</label>
+            <input type="text" id="machine_id" value="M14860" required
+              class="w-full mt-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none text-white">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-400 uppercase">Machine Type</label>
+            <select id="machine_type" class="w-full mt-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none text-white">
+              <option value="L">L (Low Quality)</option>
+              <option value="M" selected>M (Medium)</option>
+              <option value="H">H (High)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-semibold text-slate-400 uppercase">Air Temp (K)</label>
+            <input type="number" step="0.1" id="air_temp" value="298.2" required
+              class="w-full mt-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none text-white">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-400 uppercase">Process Temp (K)</label>
+            <input type="number" step="0.1" id="process_temp" value="308.7" required
+              class="w-full mt-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none text-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-semibold text-slate-400 uppercase">Speed (RPM)</label>
+            <input type="number" step="1" id="speed" value="1500" required
+              class="w-full mt-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none text-white">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-400 uppercase">Torque (Nm)</label>
+            <input type="number" step="0.1" id="torque" value="40.0" required
+              class="w-full mt-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-400 uppercase">Tool Wear (Minutes)</label>
+          <input type="number" step="1" id="tool_wear" value="120" required
+            class="w-full mt-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none text-white">
+        </div>
+
+        <button type="submit" id="submitBtn"
+          class="w-full py-3 bg-sky-500 hover:bg-sky-600 transition font-bold rounded-lg text-slate-900 shadow-md">
+          Run Machine Diagnosis
+        </button>
+      </form>
+    </div>
+
+    <!-- Live Diagnostics Panel -->
+    <div class="flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-700 md:pl-8 pt-6 md:pt-0">
+      <div>
+        <h2 class="text-2xl font-bold text-slate-100 mb-6 flex items-center gap-2">
+          <span>📊</span> Health Diagnostics
+        </h2>
+
+        <div id="statusBox" class="p-6 rounded-xl border border-slate-700 bg-slate-950/60 mb-6 text-center">
+          <p class="text-sm uppercase tracking-wider text-slate-400 font-semibold mb-1">Failure Risk Level</p>
+          <div id="riskBadge" class="text-3xl font-extrabold text-slate-500">Awaiting Telemetry</div>
+          <p id="riskProb" class="text-xs text-slate-400 mt-2">Submit sensor metrics to calculate status.</p>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex justify-between items-center bg-slate-950 px-4 py-3 rounded-lg border border-slate-800">
+            <span class="text-sm text-slate-400">Δ Temperature</span>
+            <span id="tempDiff" class="font-mono text-slate-200">-- K</span>
+          </div>
+          <div class="flex justify-between items-center bg-slate-950 px-4 py-3 rounded-lg border border-slate-800">
+            <span class="text-sm text-slate-400">Mechanical Power</span>
+            <span id="mechPower" class="font-mono text-slate-200">-- W</span>
+          </div>
+          <div class="flex justify-between items-center bg-slate-950 px-4 py-3 rounded-lg border border-slate-800">
+            <span class="text-sm text-slate-400">Failure Prediction</span>
+            <span id="failStatus" class="font-mono text-slate-200">--</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-xs text-slate-500 text-center mt-6">
+        Connected to <code class="text-sky-400">http://127.0.0.1:8000/api/v1/predict</code>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const form = document.getElementById('sensorForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Analyzing Telemetry...";
+
+      const payload = {
+        machine_id: document.getElementById('machine_id').value,
+        machine_type: document.getElementById('machine_type').value,
+        air_temperature_k: parseFloat(document.getElementById('air_temp').value),
+        process_temperature_k: parseFloat(document.getElementById('process_temp').value),
+        rotational_speed_rpm: parseFloat(document.getElementById('speed').value),
+        torque_nm: parseFloat(document.getElementById('torque').value),
+        tool_wear_min: parseFloat(document.getElementById('tool_wear').value)
+      };
+
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/v1/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        const data = await res.json();
+
+        // Update indicators
+        const riskBadge = document.getElementById('riskBadge');
+        const riskProb = document.getElementById('riskProb');
+        const statusBox = document.getElementById('statusBox');
+
+        riskBadge.innerText = data.risk_level;
+        riskProb.innerText = `Calculated Failure Probability: ${(data.failure_probability * 100).toFixed(1)}%`;
+
+        statusBox.className = "p-6 rounded-xl border mb-6 text-center transition ";
+        if (data.risk_level === "CRITICAL") {
+          statusBox.className += "border-red-500 bg-red-950/30";
+          riskBadge.className = "text-3xl font-extrabold text-red-400";
+        } else if (data.risk_level === "WARNING") {
+          statusBox.className += "border-amber-500 bg-amber-950/30";
+          riskBadge.className = "text-3xl font-extrabold text-amber-400";
+        } else {
+          statusBox.className += "border-emerald-500 bg-emerald-950/30";
+          riskBadge.className = "text-3xl font-extrabold text-emerald-400";
+        }
+
+        document.getElementById('tempDiff').innerText = `${data.temp_difference} K`;
+        document.getElementById('mechPower').innerText = `${data.mechanical_power_w} W`;
+        document.getElementById('failStatus').innerText = data.failure_predicted ? "⚠️ FAILURE EXPECTED" : "✅ NORMAL OPERATION";
+
+      } catch (err) {
+        alert("Failed to reach backend: Ensure FastAPI is running on port 8000.");
+        console.error(err);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Run Machine Diagnosis";
+      }
+    });
+  </script>
+</body>
+</html>
